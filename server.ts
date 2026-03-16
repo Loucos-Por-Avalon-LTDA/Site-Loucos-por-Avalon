@@ -67,16 +67,23 @@ lete('/fazoL/limpar', verificarSenha, (req, res) => {
 app.de
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Servidor rodando na porta ${PORT}`));
+app.get('/fazoL', (req, res) => {
+    res.send('O pai tá on!');
+});
 
+// FUNÇÃO ANTI-SLEEP
 setInterval(async () => {
     try {
-       const res = await fetch(`https://site-loucos-por-avalon.onrender.com/fazoL`);
+        const res = await fetch(`https://site-loucos-por-avalon.onrender.com/fazoL`);
         if (res.ok) {
             console.log("⚓ Auto-ping: Servidor acordado!");
         }
-    } catch (e) {
+    } catch (e: any) {
         console.error("❌ Erro no auto-ping:", e.message);
     }
 }, 600000);
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`🚀 Servidor rodando na porta ${PORT}`);
+});
