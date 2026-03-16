@@ -59,12 +59,12 @@ app.delete('/fazoL/jogador/:id', verificarSenha, (req, res) => {
     }
     res.json({ ok: true });
 });
-lete('/fazoL/limpar', verificarSenha, (req, res) => {
+app.delete('/fazoL/limpar', verificarSenha, (req, res) => {
     lista.forEach(j => j.naPT = false);
     lista = lista.filter(j => j.mor === true);
     salvar();
     res.json({ ok: true });
-app.de
+
 });
 
 app.get('/fazoL', (req, res) => {
