@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AVALON - SISTEMA DE CRÉDITOS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/tesseract.js@v4.0.1/dist/tesseract.min.js"></script>
+    <style>
+        .mor-active { border: 2px solid #22c55e !important; background: rgba(34, 197, 94, 0.1) !important; }
+        .mor-text { color: #4ade80 !important; font-weight: bold; }
+        body { background-color: #09090b; color: #f4f4f5; font-family: sans-serif; }
+    </style>
+</head>
+<body>
+
+    <button type="button" onclick="toggleLoginModal()" class="fixed top-4 right-4 z-50 p-3 bg-zinc-900 border border-zinc-800 rounded-lg text-blue-500">☰</button>
+
+    <div id="login-modal" class="fixed inset-0 bg-black/95 z-[60] hidden flex items-center justify-center p-4">
+        <div class="bg-zinc-900 p-8 rounded-2xl border border-zinc-800 w-full max-w-sm">
+            <h2 class="text-xl font-black text-blue-500 mb-6 text-center uppercase">Acesso Staff</h2>
+            <input id="admin-pass" type="password" placeholder="Senha" class="w-full bg-zinc-800 border border-zinc-700 p-3 rounded-lg mb-4 text-center outline-none">
+            <div class="flex gap-2">
+                <button type="button" onclick="toggleLoginModal()" class="flex-1 bg-zinc-800 py-3 rounded-lg font-bold">VOLTAR</button>
+                <button type="button" onclick="checkAdminLogin()" class="flex-1 bg-blue-600 py-3 rounded-lg font-bold">ENTRAR</button>
+            </div>
+        </div>
+    </div>
+
+    <main id="player-view" class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-zinc-900 border border-zinc-800 p-8 rounded-2xl w-full max-w-md">
+            <h1 class="text-2xl font-black text-blue-500 mb-6 text-center italic uppercase">Ping Presença</h1>
+            <div class="space-y-4">
+                <input id="p-nick" type="text" placeholder="Nick no Jogo" class="w-full bg-zinc-800 border border-zinc-700 p-3 rounded-lg outline-none">
+                <input id="p-ip" type="number" placeholder="Seu IP" class="w-full bg-zinc-800 border border-zinc-700 p-3 rounded-lg outline-none">
+                <select id="p-classe" class="w-full bg-zinc-800 border border-zinc-700 p-3 rounded-lg outline-none">
+                    <option value="Off-Tank">Off-Tank</option><option value="Main Heal">Main Heal</option>
+                    <option value="Elevado">Elevado</option><option value="Silence">Silence</option>
+                    <option value="Quebra Reinos">Quebra Reinos</option><option value="Raiz ferrea">Raiz ferrea</option>
+                    <option value="Bruxo">Bruxo</option><option value="Incubus">Incubus</option>
+                    <option value="Oculto">Oculto</option><option value="Bruxo Dps">Bruxo Dps</option>
+                    <option value="Foice">Foice</option><option value="Fire">Fire</option>
+                    <option value="Frost">Frost</option><option value="Repetidor">Repetidor</option>
+                    <option value="Aguia">Aguia</option><option value="Raiz Dps">Raiz Dps</option>
+                </select>
+                <button type="button" onclick="registrarPlayer()" class="w-full bg-blue-600 py-3 rounded-lg font-bold uppercase tracking-widest">Enviar Ping</button>
+                <p id="msg-ok" class="hidden text-green-400 text-center text-sm font-bold mt-2">✅ Enviado com sucesso!</p>
+            </div>
+        </div>
+    </main>
+
+    <main id="caller-view" class="hidden p-6 md:p-12">
+        <div class="max-w-7xl mx-auto">
+            <header class="flex flex-col md:flex-row justify-between items-start mb-8 gap-6">
+                <h1 class="text-3xl font-black text-blue-600 uppercase italic">Painel do Caller</h1>
+                
+                <div class="flex flex-col gap-2 w-full md:w-auto bg-zinc-900 p-3 rounded-xl border border-zinc-800">
+                    <label class="flex items-center justify-center border-2 border-dashed border-zinc-700 rounded-lg p-2 cursor-pointer hover:border-blue-500 transition-all">
+                        <span id="label-foto" class="text-[10px] text-zinc-500 uppercase font-bold text-center">📷 Colar (Ctrl+V) ou<br>Subir Print da Comp</span>
+                        <input type="file" id="input-print" accept="image/*" class="hidden" onchange="handleFileSelect()">
+                    </label>
+                    <button type="button" id="btn-check-foto" onclick="processarImagem()" class="bg-blue-600 px-6 py-2 rounded font-bold uppercase text-[10px] disabled:opacity-50">Analisar Print</button>
+                </div>
+            </header>
+
+            <section class="mb-10 bg-zinc-900/50 border border-green-900/30 p-5 rounded-2xl">
+                <h2 class="text-green-500 font-black uppercase tracking-widest text-xs mb-4">Créditos de MOR Ativos</h2>
+                <div id="area-mor-creditos" class="flex flex-wrap gap-3"></div>
+            </section>
+
+            <div id="grid-classes" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"></div>
+
+            <div class="mt-16 text-center">
+                <button type="button" id="btn-limpar-tudo" onclick="confirmarLimpeza(event)" class="text-red-500 border border-red-900/50 px-8 py-3 rounded-full hover:bg-red-600 transition-all text-[10px] font-black uppercase">Limpar PT Atual</button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const API = "https://site-loucos-por-avalon.onrender.com";
+        const CLASSES = ["Off-Tank", "Main Heal", "Elevado", "Silence", "Quebra Reinos", "Raiz ferrea", "Bruxo", "Incubus", "Oculto", "Bruxo Dps", "Foice", "Fire", "Frost", "Repetidor", "Aguia", "Raiz Dps"];
+        let STAFF_TOKEN = "";
+
+        function toggleLoginModal() { document.getElementById('login-modal').classList.toggle('hidden'); }
+
+        async function checkAdminLogin() {
+            const pass = document.getElementById('admin-pass').value;
+            const res = await fetch(`${API}/login`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ senha: pass })
+            });
+            if (res.ok) {
+                STAFF_TOKEN = pass;
+                document.getElementById('login-modal').classList.add('hidden');
+                document.getElementById('player-view').classList.add('hidden');
+                document.getElementById('caller-view').classList.remove('hidden');
+                startCallerMode();
+            } else alert("Senha incorreta!");
+        }
+
+        async function registrarPlayer() {
+            const nick = document.getElementById('p-nick').value;
+            const ip = document.getElementById('p-ip').value;
+            const classe = document.getElementById('p-classe').value;
+            if(!nick || !ip) return alert("Preencha tudo!");
+            
+            const res = await fetch(`${API}/registrar`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ nick, ip, classe })
+            });
+            if(res.ok) {
+                document.getElementById('msg-ok').classList.remove('hidden');
+                document.getElementById('p-nick').value = "";
+                setTimeout(() => document.getElementById('msg-ok').classList.add('hidden'), 3000);
+            }
+        }
+
+        let loop;
+        function startCallerMode() { renderDash(); if(loop) clearInterval(loop); loop = setInterval(renderDash, 5000); }
+
+        async function renderDash() {
+            try {
+                const res = await fetch(`${API}/fazoL`);
+                const jogadores = await res.json();
+                
+                const areaMor = document.getElementById('area-mor-creditos');
+                areaMor.innerHTML = jogadores.filter(j => j.mor).map(j => `
+                    <div class="bg-green-950/20 border border-green-500/30 px-3 py-2 rounded-lg flex items-center gap-3">
+                        <span class="text-green-400 font-bold text-[11px]">${j.nick.toUpperCase()}</span>
+                        <button onclick="toggleMor('${j.id}')" class="text-zinc-500 hover:text-red-400">✕</button>
+                    </div>
+                `).join('') || '<p class="text-zinc-700 text-[10px]">SEM CRÉDITOS</p>';
+
+                const container = document.getElementById('grid-classes');
+                container.innerHTML = '';
+                CLASSES.forEach(nome => {
+                    const daClasse = jogadores.filter(j => j.classe === nome && j.naPT);
+                    const card = document.createElement('div');
+                    card.className = "bg-zinc-900 border border-zinc-800 p-4 rounded-xl shadow-lg";
+                    let listaHtml = daClasse.map(j => `
+                        <div class="p-2 mb-2 rounded border transition-all ${j.mor ? 'mor-active' : 'bg-zinc-800/50 border-transparent'}">
+                            <div class="flex justify-between items-center text-[11px]">
+                                <span class="${j.mor ? 'mor-text' : ''}">${j.nick}</span>
+                                <span class="text-blue-500 font-bold">${j.ip}</span>
+                            </div>
+                            <div class="flex gap-1 mt-2">
+                                <button onclick="toggleMor('${j.id}')" class="flex-1 ${j.mor ? 'bg-green-600' : 'bg-zinc-700'} text-[9px] py-1 rounded font-bold">${j.mor ? 'REMOVER MOR' : 'DAR MOR'}</button>
+                                <button id="del-${j.id}" onclick="confirmarRemocao('${j.id}')" class="text-zinc-600 text-[9px] px-2">X</button>
+                            </div>
+                        </div>
+                    `).join('');
+                    card.innerHTML = `<h3 class="text-[10px] font-black text-zinc-500 mb-3 uppercase flex justify-between">${nome} <span class="text-blue-600">${daClasse.length}</span></h3><div>${listaHtml || '<div class="text-[9px] text-zinc-800 text-center py-2 font-bold italic">VAZIO</div>'}</div>`;
+                    container.appendChild(card);
+                });
+            } catch (e) {}
+        }
+
+        async function toggleMor(id) { 
+            await fetch(`${API}/fazoL/mor/${id}`, { headers: {'Authorization': STAFF_TOKEN}, method: 'PATCH' }); 
+            renderDash(); 
+        }
+
+        async function confirmarRemocao(id) {
+            const btn = document.getElementById(`del-${id}`);
+            if (btn.innerText === "X") {
+                btn.innerText = "?";
+                setTimeout(() => btn.innerText = "X", 3000);
+            } else {
+                await fetch(`${API}/fazoL/jogador/${id}`, { headers: {'Authorization': STAFF_TOKEN}, method: 'DELETE' });
+                renderDash();
+            }
+        }
+
+        async function confirmarLimpeza() {
+            const btn = document.getElementById('btn-limpar-tudo');
+            if (btn.innerText === "Limpar PT Atual") {
+                btn.innerText = "TEM CERTEZA?";
+                setTimeout(() => btn.innerText = "Limpar PT Atual", 3000);
+            } else {
+                await fetch(`${API}/fazoL/limpar`, { headers: {'Authorization': STAFF_TOKEN}, method: 'DELETE' });
+                renderDash();
+            }
+        }
+
+        function handleFileSelect() { document.getElementById('label-foto').innerText = "✅ Imagem Carregada!"; }
+
+        window.addEventListener('paste', e => {
+            const items = e.clipboardData.items;
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf('image') !== -1) {
+                    const file = items[i].getAsFile();
+                    const dt = new DataTransfer();
+                    dt.items.add(file);
+                    document.getElementById('input-print').files = dt.files;
+                    document.getElementById('label-foto').innerText = "✅ Imagem Colada (Ctrl+V)!";
+                }
+            }
+        });
+
+        async function processarImagem() {
+            const input = document.getElementById('input-print');
+            const btn = document.getElementById('btn-check-foto');
+            if (!input.files[0]) return alert("Selecione ou Cole uma print primeiro!");
+
+            btn.disabled = true;
+            btn.innerText = "⏳ LENDO NICKNAMES...";
+
+            try {
+                const { data: { text } } = await Tesseract.recognize(input.files[0], 'eng');
+        
+                const encontrados = text.match(/@[A-Za-z0-9_]+/g) || [];
+                const nicksPrint = encontrados.map(n => n.replace('@', '').toLowerCase().trim());
+
+                if (nicksPrint.length === 0) {
+                    alert("Não consegui ler nenhum nick com '@'. Tente uma print mais nítida.");
+                } else {
+                    const res = await fetch(`${API}/fazoL`);
+                    const db = await res.json();
+                    const nicksNoBanco = db.filter(j => j.naPT).map(j => j.nick.toLowerCase().trim());
+
+                    const faltantes = nicksPrint.filter(n => !nicksNoBanco.includes(n));
+
+                    if (faltantes.length > 0) {
+                        alert("⚠️ ATENÇÃO! FALTANDO PING:\n\n" + [...new Set(faltantes)].join('\n').toUpperCase());
+                    } else {
+                        alert("✅ TUDO OK! Todos os " + nicksPrint.length + " da print já pingaram.");
+                    }
+                }
+            } catch (e) {
+                alert("Erro ao ler imagem. Verifique sua internet.");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Analisar Print";
+            }
+        }
+    </script>
+</body>
+</html>
