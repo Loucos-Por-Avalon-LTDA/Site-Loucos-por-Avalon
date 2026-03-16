@@ -59,13 +59,24 @@ app.delete('/fazoL/jogador/:id', verificarSenha, (req, res) => {
     }
     res.json({ ok: true });
 });
-
-app.delete('/fazoL/limpar', verificarSenha, (req, res) => {
+lete('/fazoL/limpar', verificarSenha, (req, res) => {
     lista.forEach(j => j.naPT = false);
     lista = lista.filter(j => j.mor === true);
     salvar();
     res.json({ ok: true });
+app.de
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 Servidor rodando na porta ${PORT}`));
+
+setInterval(async () => {
+    try {
+       const res = await fetch(`https://site-loucos-por-avalon.onrender.com/fazoL`);
+        if (res.ok) {
+            console.log("⚓ Auto-ping: Servidor acordado!");
+        }
+    } catch (e) {
+        console.error("❌ Erro no auto-ping:", e.message);
+    }
+}, 600000);
