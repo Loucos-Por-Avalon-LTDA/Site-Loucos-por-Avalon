@@ -87,3 +87,32 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`🚀 Servidor rodando na porta ${PORT}`);
 });
+
+    app.post('/importar-raid', (req, res) => {
+    const { textoDoDiscord } = req.body;
+    
+    // Regex ninja para pegar tudo que vem depois do @
+    const nicksEncontrados = textoDoDiscord.match(/@([\w]+)/g) || [];
+    
+    const nicksLimpos = nicksEncontrados.map(n => n.replace('@', ''));
+
+    nicksLimpos.forEach(nick => {
+        const index = lista.findIndex(j => j.nick?.toLowerCase() === nick.toLowerCase());
+        if (index !== -1) {
+            lista[index].naPT = true;
+            lista[index].hora = Date.now();
+        } else {
+            lista.push({ 
+                id: Math.random().toString(36).substring(2, 11), 
+                nick, 
+                naPT: true, 
+                mor: false, 
+                hora: Date.now() 
+            });
+        }
+    });
+
+    salvar();
+    res.json({ mensagem: `${nicksLimpos.length} jogadores importados!`, nicks: nicksLimpos });
+});
+
