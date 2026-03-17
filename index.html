@@ -197,27 +197,44 @@
         }
 
         // --- FUNÇÃO NOVA: IMPORTAR DO RAID-HELPER ---
-        async function importarRaid() {
-            const texto = document.getElementById('raidText').value;
-            if (!texto) return alert("Por favor, cole o texto do Raid-Helper primeiro!");
+      async function importarRaid() {
+    const texto = document.getElementById('raidText').value;
+    if (!texto) return alert("Por favor, cole o texto do Raid-Helper primeiro!");
 
-            const res = await fetch(`${API}/importar-raid`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': STAFF_TOKEN
-                },
-                body: JSON.stringify({ textoDoDiscord: texto })
-            });
+    try {
+        // 1. Captura os nicks que começam com @ no texto colado
+        const encontrados = texto.match(/@[A-Za-z0-9_]+/g) || [];
+        const nicksDiscord = encontrados.map(n => n.replace('@', '').toLowerCase().trim());
 
-            if (res.ok) {
-                alert("PT Sincronizada com sucesso!");
-                document.getElementById('raidText').value = ""; 
-                renderDash(); 
-            } else {
-                alert("Erro ao importar. O servidor local está rodando?");
-            }
+        if (nicksDiscord.length === 0) {
+            return alert("Não encontrei nenhum nick com '@' no texto colado.");
         }
+
+        // 2. Busca a lista de quem já deu ping no seu servidor
+        const res = await fetch(`${API}/fazoL`);
+        const db = await res.json();
+        
+        // Filtra apenas quem está com o ping ativo (naPT)
+        const nicksNoBanco = db.filter(j => j.naPT).map(j => j.nick.toLowerCase().trim());
+
+        // 3. Compara: quem está no texto do Discord mas NÃO está no banco?
+        const faltantes = nicksDiscord.filter(n => !nicksNoBanco.includes(n));
+
+        // 4. Mostra o resultado igual à função da Print
+        if (faltantes.length > 0) {
+            alert("⚠️ ATENÇÃO! FALTANDO PING:\n\n" + [...new Set(faltantes)].join('\n').toUpperCase());
+        } else {
+            alert("✅ TUDO OK! Todos os " + nicksDiscord.length + " nomes do Discord já deram ping.");
+        }
+
+        // Limpa o campo após processar
+        document.getElementById('raidText').value = "";
+
+    } catch (e) {
+        console.error(e);
+        alert("Erro ao processar a lista. Verifique se o servidor está rodando.");
+    }
+}
 
         // --- FUNÇÕES DA PRINT (MANTIDAS EXATAMENTE IGUAIS) ---
         function handleFileSelect() { document.getElementById('label-foto').innerText = "✅ Imagem Carregada!"; }
